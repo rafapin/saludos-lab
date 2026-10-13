@@ -129,11 +129,8 @@ En GitHub, abrir el repositorio → **Settings → Actions → Runners → New s
 
 Como las VM no tienen IP pública, entrar en el portal de Azure → VM → **Run command → RunShellScript**. El comando se ejecuta como root. Para cada VM:
 
-1. Crear `/home/azureuser/actions-runner` y usar allí los comandos de descarga y extracción que muestra GitHub.
-2. Ejecutar `chown -R azureuser:azureuser /home/azureuser/actions-runner`.
-3. Desde esa carpeta, ejecutar la configuración como usuario normal: `sudo -H -u azureuser ./config.sh --url URL_DEL_REPO --token TOKEN_TEMPORAL --labels frontend --name vm-saludos-frontend --unattended` en frontend. En backend cambiar etiqueta a `backend` y nombre a `vm-saludos-backend`.
-4. Instalar y arrancar el servicio como root: `./svc.sh install azureuser` y `./svc.sh start`.
-5. En GitHub, comprobar que aparecen **Online** los runners `frontend` y `backend`. El script de cloud-init ya agrega `azureuser` al grupo Docker.
+1. Usar `infra/install-runner.sh`, que espera cloud-init, comprueba Docker, descarga la versión actual del runner desde GitHub, lo registra como `azureuser` e instala el servicio. Se puede pasar a `az vm run-command invoke --command-id RunShellScript --scripts @infra/install-runner.sh --parameters URL_DEL_REPO TOKEN_TEMPORAL frontend vm-saludos-frontend` para la VM frontend; sustituir la etiqueta y el nombre para backend.
+2. En GitHub, comprobar que aparecen **Online** los runners `frontend` y `backend`. El script de cloud-init ya agrega `azureuser` al grupo Docker.
 
 No pegues el token temporal del runner en el chat ni en las capturas. Si GitHub indica dependencias faltantes, ejecutar `./bin/installdependencies.sh` como root antes de configurar. [Guía oficial de runners](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners).
 

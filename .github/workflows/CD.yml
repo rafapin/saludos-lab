@@ -1,0 +1,60 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Tag existente en Docker Hub; latest para despliegue normal
+        required: true
+        default: latest
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saludos-production
+  cancel-in-progress: false
+
+env:
+  IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
+
+jobs:
+  backend:
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: [self-hosted, linux, x64, backend]
+    environment: Production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Desplegar y verificar backend
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DB_HOST" && test -n "$DB_NAME" && test -n "$DB_USER" && test -n "$DB_PASSWORD"
+          umask 077
+          mkdir -p "$HOME/saludos"
+          printf 'DB_HOST=%s\nDB_PORT=5432\nDB_NAME=%s\nDB_USER=%s\nDB_PASSWORD=%s\nDB_SSLMODE=require\n' \
+            "$DB_HOST" "$DB_NAME" "$DB_USER" "$DB_PASSWORD" > "$HOME/saludos/backend.env"
+          bash scripts/deploy-backend.sh "$DOCKERHUB_USERNAME/saludos-backend" "$IMAGE_TAG" "$HOME/saludos/backend.env"
+
+  frontend:
+    needs: backend
+    runs-on: [self-hosted, linux, x64, frontend]
+    environment: Production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Desplegar y verificar flujo completo
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          BACKEND_PRIVATE_IP: ${{ vars.BACKEND_PRIVATE_IP }}
+        run: |
+          test -n "$DOCKERHUB_USERNAME" && test -n "$BACKEND_PRIVATE_IP"
+          bash scripts/deploy-frontend.sh "$DOCKERHUB_USERNAME/saludos-frontend" "$IMAGE_TAG" "$BACKEND_PRIVATE_IP"

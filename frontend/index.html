@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saludos en Azure</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 42rem; margin: 4rem auto; padding: 0 1rem; color: #183153; }
+    main { border: 1px solid #cbd5e1; border-radius: 12px; padding: 2rem; }
+    button { background: #0067b8; color: white; border: 0; border-radius: 6px; padding: .7rem 1rem; cursor: pointer; }
+    output { display: block; margin-top: 1rem; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Saludos en Azure</h1>
+    <p>Esta página prueba la ruta Application Gateway → frontend → backend → PostgreSQL.</p>
+    <button id="consultar">Consultar saludo</button>
+    <output id="resultado" aria-live="polite">Esperando consulta.</output>
+  </main>
+  <script>
+    async function consultar() {
+      const resultado = document.getElementById('resultado');
+      resultado.textContent = 'Consultando...';
+      try {
+        const respuesta = await fetch('/api/saludo', { cache: 'no-store' });
+        if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+        const datos = await respuesta.json();
+        resultado.textContent = datos.mensaje + ' · Hora de PostgreSQL: ' + datos.database_time;
+      } catch (error) {
+        resultado.textContent = 'Falló la conexión: ' + error.message;
+      }
+    }
+    document.getElementById('consultar').addEventListener('click', consultar);
+    consultar();
+  </script>
+</body>
+</html>

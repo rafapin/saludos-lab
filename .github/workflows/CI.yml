@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-push:
+    runs-on: [self-hosted, linux, x64, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar usuario de Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+        run: test -n "$DOCKERHUB_USERNAME"
+
+      - name: Probar el backend dentro de Docker
+        run: docker build --target test --tag saludos-backend:test ./backend
+
+      - name: Construir y etiquetar las imágenes
+        id: images
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+        run: |
+          tag="sha-${GITHUB_SHA::12}"
+          docker build --tag "$DOCKERHUB_USERNAME/saludos-backend:$tag" --tag "$DOCKERHUB_USERNAME/saludos-backend:latest" ./backend
+          docker build --tag "$DOCKERHUB_USERNAME/saludos-frontend:$tag" --tag "$DOCKERHUB_USERNAME/saludos-frontend:latest" ./frontend
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar en Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          IMAGE_TAG: ${{ steps.images.outputs.tag }}
+        run: |
+          test -n "$DOCKERHUB_TOKEN"
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+          for service in backend frontend; do
+            docker push "$DOCKERHUB_USERNAME/saludos-$service:$IMAGE_TAG"
+            docker push "$DOCKERHUB_USERNAME/saludos-$service:latest"
+          done
+          echo "Imágenes publicadas con tags $IMAGE_TAG y latest" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cerrar sesión en Docker Hub
+        if: always()
+        run: docker logout || true

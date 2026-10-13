@@ -57,7 +57,7 @@ Cuando el costo esté revisado, ejecutar:
 
     .\infra\provision.ps1 -SshPublicKeyPath .\.keys\saludos_e1.pub -CostReviewed -Apply
 
-El script solicita la contraseña nueva del administrador de PostgreSQL. Anotarla en un gestor de contraseñas; se necesitará más adelante como secreto `DB_PASSWORD` de GitHub. No ponerla en el repositorio. Si la región, el tamaño o el grupo cambian, consultar los parámetros al inicio de `infra/provision.ps1` y pasarlos en la llamada, por ejemplo `-Location eastus2 -FrontendVmSize Standard_B2s`.
+El script genera una contraseña fuerte para PostgreSQL y la guarda en `.secrets/db-admin-password.txt`, archivo ignorado por Git. Se necesitará como secreto `DB_PASSWORD` de GitHub; no publicar su contenido. Si la región, el tamaño o el grupo cambian, consultar los parámetros al inicio de `infra/provision.ps1` y pasarlos en la llamada, por ejemplo `-Location eastus2 -FrontendVmSize Standard_B2s`.
 
 El script crea primero red y NAT, después DNS y PostgreSQL, luego las VM y finalmente Application Gateway. Tarda varios minutos. Si falla a mitad de camino, revise el estado del recurso afectado antes de reejecutarlo; el script omite recursos que ya existen. **El gateway aparecerá Unhealthy hasta que el frontend esté desplegado.**
 

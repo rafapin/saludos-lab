@@ -6,11 +6,15 @@ param(
     [string]$FrontendVmSize = 'Standard_B2s',
     [string]$BackendVmSize = 'Standard_B1ms',
     [string]$DbSku = 'Standard_B1ms',
+    [string]$DbPasswordFile = '',
     [switch]$CostReviewed,
     [switch]$Apply
 )
 
 $ErrorActionPreference = 'Stop'
+if (-not $DbPasswordFile) {
+    $DbPasswordFile = Join-Path (Split-Path $PSScriptRoot -Parent) '.secrets/db-admin-password.txt'
+}
 
 function Invoke-Az {
     param([string[]]$CliArgs)
@@ -167,17 +171,22 @@ Ensure-AzResource -Label 'link-saludos-vnet' `
                   '-z', $privateDnsZone, '-n', 'link-saludos-vnet', '-v', $vnet, '-e', 'false')
 
 if (-not (Test-AzResource -CliArgs @('postgres', 'flexible-server', 'show', '-g', $ResourceGroup, '-n', $dbServer))) {
-    $securePassword = Read-Host 'Contraseña nueva del administrador PostgreSQL' -AsSecureString
-    $passwordPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+    if (Test-Path -LiteralPath $DbPasswordFile -PathType Leaf) {
+        $plainPassword = (Get-Content -LiteralPath $DbPasswordFile -Raw).Trim()
+    } else {
+        $plainPassword = ([Convert]::ToBase64String(
+            [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(30))).TrimEnd('=') + 'Aa1!'
+        $secretDir = Split-Path -Parent $DbPasswordFile
+        New-Item -ItemType Directory -Path $secretDir -Force | Out-Null
+        Set-Content -LiteralPath $DbPasswordFile -Value $plainPassword -NoNewline -Encoding utf8
+    }
     try {
-        $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($passwordPtr)
         Invoke-Az -CliArgs @('postgres', 'flexible-server', 'create', '-g', $ResourceGroup, '-n', $dbServer,
                             '-l', $Location, '--admin-user', $DbAdminUser, '--admin-password', $plainPassword,
                             '--vnet', $vnet, '--subnet', 'snet-postgres', '--private-dns-zone', $privateDnsZone,
                             '--sku-name', $DbSku, '--tier', 'Burstable', '--storage-size', '32', '--version', '16')
     } finally {
         $plainPassword = $null
-        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($passwordPtr)
     }
 } else {
     Write-Host "Ya existe: $dbServer"
@@ -242,5 +251,5 @@ Write-Host "DB_USER=$DbAdminUser"
 Write-Host "BACKEND_PRIVATE_IP=$backendIp"
 Write-Host "FRONTEND_PRIVATE_IP=$frontendIp"
 Write-Host "APP_URL=http://$gatewayIp"
-Write-Host 'DB_PASSWORD debe configurarse como secreto de Production en GitHub.'
+Write-Host "DB_PASSWORD se guardó en $DbPasswordFile y debe configurarse como secreto de Production en GitHub."
 Write-Host 'El gateway estará Unhealthy hasta desplegar el contenedor frontend.'

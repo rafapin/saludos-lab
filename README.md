@@ -170,7 +170,7 @@ CD también permite ejecución manual con `image_tag`. Para un despliegue normal
 - Archivo con las seis respuestas del PDF: dificultad y facilidad, aprendizajes, mejoras, dudas, errores y su solución, y qué se necesita para replicar el ambiente.
 - Compartir lo anterior con las dos direcciones indicadas en el PDF.
 
-Después de tomar las capturas, revisar el gasto y borrar el grupo `rg-saludos-e1-20261013` desde el portal de Azure; esto elimina sus recursos. El presupuesto solo alerta y no interrumpe la facturación.
+Después de tomar las capturas, revisar el gasto y borrar el grupo `rg-saludos-e1-20261013` con `.\infra\cleanup.ps1 -Apply`; el script comprueba el nombre, muestra los recursos y verifica la eliminación. El presupuesto solo alerta y no interrumpe la facturación.
 
 ## Fuentes de infraestructura
 

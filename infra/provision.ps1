@@ -5,7 +5,9 @@ param(
     [string]$DbAdminUser = 'saludosadmin',
     [string]$FrontendVmSize = 'Standard_B2s',
     [string]$BackendVmSize = 'Standard_B1ms',
-    [string]$DbSku = 'Standard_B1ms',
+    [string]$DbSku = 'Standard_D2s_v3',
+    [string]$DbTier = 'GeneralPurpose',
+    [string]$DbZone = '2',
     [string]$DbPasswordFile = '',
     [switch]$CostReviewed,
     [switch]$Apply
@@ -73,7 +75,7 @@ $privateDnsZone = 'saludos.private.postgres.database.azure.com'
 
 Write-Host "Suscripción activa: $subscriptionId"
 Write-Host "Región: $Location | Grupo: $ResourceGroup"
-Write-Host "VM frontend: $FrontendVmSize | VM backend: $BackendVmSize | PostgreSQL: $DbSku"
+Write-Host "VM frontend: $FrontendVmSize | VM backend: $BackendVmSize | PostgreSQL: $DbSku ($DbTier)"
 Write-Host "Servidor PostgreSQL previsto: $dbServer"
 Write-Host 'Este laboratorio incluye recursos facturables: dos VM, discos, Application Gateway, NAT, IP públicas y PostgreSQL.'
 
@@ -184,7 +186,8 @@ if (-not (Test-AzResource -CliArgs @('postgres', 'flexible-server', 'show', '-g'
         Invoke-Az -CliArgs @('postgres', 'flexible-server', 'create', '-g', $ResourceGroup, '-n', $dbServer,
                             '-l', $Location, '--admin-user', $DbAdminUser, '--admin-password', $plainPassword,
                             '--vnet', $vnet, '--subnet', 'snet-postgres', '--private-dns-zone', $privateDnsZone,
-                            '--sku-name', $DbSku, '--tier', 'Burstable', '--storage-size', '32', '--version', '16')
+                            '--sku-name', $DbSku, '--tier', $DbTier, '--storage-size', '32', '--version', '16',
+                            '--zone', $DbZone)
     } finally {
         $plainPassword = $null
     }

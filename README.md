@@ -4,7 +4,7 @@ Este repositorio está preparado para el Entregable 1 del diplomado. Publica una
 
 El código es deliberadamente pequeño para que las evidencias se concentren en infraestructura, red y CI/CD. No hay recursos creados por guardar o subir estos archivos: Azure se aprovisiona al ejecutar el script con `-Apply`.
 
-**Estado de validación:** las imágenes, las tres pruebas unitarias y el flujo integrado frontend → backend → PostgreSQL pasaron localmente el 13 de octubre de 2026. El aprovisionamiento en Azure depende de cuota, disponibilidad regional y revisión de costos.
+**Estado de validación:** las imágenes, las tres pruebas unitarias y el flujo integrado frontend → backend → PostgreSQL pasaron localmente el 13 de octubre de 2026. Ese día se aprovisionó temporalmente la topología en East US 2. Azure rechazó los SKU PostgreSQL Burstable `B1ms` y `B2s`; `Standard_D2s_v3` en zona 2 quedó en estado Ready. El informe del entregable registra la validación y la limpieza del laboratorio.
 
 ## Qué se aprovisiona
 
